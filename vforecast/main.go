@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -36,18 +37,26 @@ type Weather struct {
 	} `json:"forecast"`
 }
 
+
 func main() {
-	fmt.Println("Hello, World!")
-	res, err := http.Get("http://api.weatherapi.com/v1/forecast.json?key=574f9deba16b4951bb712025242912&q=Cali&aqi=no&alerts=no")
+	weather := getWeather()
+	printWeather(weather)
+}
+
+func getLocation(args []string) string {
+	if len(args) == 0 {
+		return "London"
+	}
+	return args[0]
+}
+
+func getWeather() Weather {
+	location := getLocation(os.Args[1:])
+
+	res, err := http.Get("http://api.weatherapi.com/v1/forecast.json?key=574f9deba16b4951bb712025242912&q=" + location + "&aqi=no&alerts=no")
 
 	if err != nil {
 		panic(err)
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		panic(fmt.Sprintf("Status code is not 200: %d", res.StatusCode))
 	}
 
 	defer res.Body.Close()
@@ -65,11 +74,18 @@ func main() {
 		panic(err)
 	}
 
+	return weather
+}
+
+func printWeather(weather Weather) {
 	location, current, hours := weather.Location, weather.Current, weather.Forecast.Forecastday[0].Hour
 
-
-	fmt.Printf("%s, %s: %.1f°C, %s\n", location.Name, location.Country, current.TempC, current.Condition.Text)
+	fmt.Println("\n====================")
+	fmt.Println("VIANCH FORECAST")
+	fmt.Println("====================")
+	fmt.Printf("\n%s, %s: %.1f°C, %s\n", location.Name, location.Country, current.TempC, current.Condition.Text)
 	fmt.Println("Hourly forecast:")
+
 	for _, hour := range hours {
 		date := time.Unix(hour.TimeEpoch, 0)
 		if date.Before(time.Now()) {
